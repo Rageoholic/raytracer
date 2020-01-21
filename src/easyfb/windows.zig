@@ -140,8 +140,8 @@ const RGBMASKS = extern struct {
 };
 
 const Image = struct {
-    width: i16,
-    height: i16,
+    width: u32,
+    height: u32,
     image: [*]u8,
     bmi: *BITMAPINFO,
 };
@@ -188,8 +188,8 @@ pub const EasyFBInstanceWindows = struct {
     pub fn renderRGBAImageSync(
         self: *@This(),
         image: []u8,
-        width: i16,
-        height: i16,
+        width: u32,
+        height: u32,
         win_name: []const u8,
     ) error{
         WindowCreationFailure,
@@ -208,8 +208,8 @@ pub const EasyFBInstanceWindows = struct {
 
         bmi_header.* = BITMAPINFOHEADER{
             .biSize = bmi_size,
-            .biWidth = width,
-            .biHeight = -height,
+            .biWidth = @intCast(i32, width),
+            .biHeight = -@intCast(i32, height),
             .biPlanes = 1,
             .biBitCount = 32,
             .biCompression = 3,
@@ -258,13 +258,8 @@ pub const EasyFBInstanceWindows = struct {
         var msg: MSG = undefined;
         var quit_message_recieved = true;
         while (@atomicLoad(u32, &window_open, .SeqCst) != 0 and 0 != GetMessageW(&msg, win, 0, 0)) {
-            if (msg.message == WM_DESTROY) {
-                quit_message_recieved = false;
-                break;
-            } else {
-                _ = TranslateMessage(&msg);
-                _ = DispatchMessageA(&msg);
-            }
+            _ = TranslateMessage(&msg);
+            _ = DispatchMessageA(&msg);
         }
         if (quit_message_recieved) {
             _ = DestroyWindow(win);

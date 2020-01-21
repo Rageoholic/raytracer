@@ -19,6 +19,7 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
             for (ret.e) |*val| {
                 val.* = v;
             }
+            return ret;
         }
 
         pub fn r(self: @This()) T {
@@ -90,59 +91,73 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
             return self.e[2];
         }
 
-        pub fn setR(self: *@This(), v: T) void {
+        pub fn rp(self: *@This()) *T {
             if (S < 1) {
                 @compileError("accessor not available");
             }
-            return self.e[0] = r;
+            return &self.e[0];
         }
-        pub fn setG(self: *@This(), v: T) void {
+        pub fn gp(self: *@This()) *T {
             if (S < 2) {
                 @compileError("accessor not available");
             }
-            return self.e[1] = r;
+            return &self.e[1];
         }
-        pub fn setB(self: *@This(), v: T) void {
+        pub fn bp(self: *@This()) *T {
             if (S < 3) {
                 @compileError("accessor not available");
             }
-            return self.e[2] = r;
+            return &self.e[2];
         }
-        pub fn setX(self: *@This(), v: T) void {
+        pub fn ap(self: *@This()) *T {
+            if (S < 4) {
+                @compileError("accessor not available");
+            }
+            return &self.e[3];
+        }
+
+        pub fn xp(self: *@This()) *T {
             if (S < 1) {
                 @compileError("accessor not available");
             }
-            return self.e[0] = r;
+            return &self.e[0];
         }
-        pub fn setY(self: *@This(), v: T) void {
+        pub fn yp(self: *@This()) *T {
             if (S < 2) {
                 @compileError("accessor not available");
             }
-            return self.e[1] = r;
+            return &self.e[1];
         }
-        pub fn setZ(self: *@This(), v: T) void {
+        pub fn zp(self: *@This()) *T {
             if (S < 3) {
                 @compileError("accessor not available");
             }
-            return self.e[2] = r;
+            return &self.e[2];
         }
-        pub fn setI(self: *@This(), v: T) void {
+        pub fn wp(self: *@This()) *T {
+            if (S < 4) {
+                @compileError("accessor not available");
+            }
+            return &self.e[3];
+        }
+
+        pub fn ip(self: *@This()) *T {
             if (S < 1) {
                 @compileError("accessor not available");
             }
-            return self.e[0] = r;
+            return &self.e[0];
         }
-        pub fn setJ(self: *@This(), v: T) void {
+        pub fn jp(self: *@This()) *T {
             if (S < 2) {
                 @compileError("accessor not available");
             }
-            return self.e[1] = r;
+            return &self.e[1];
         }
-        pub fn setK(self: *@This(), v: T) void {
+        pub fn kp(self: *@This()) *T {
             if (S < 3) {
                 @compileError("accessor not available");
             }
-            return self.e[2] = r;
+            return &self.e[2];
         }
 
         pub fn add(self: @This(), other: @This()) @This() {
@@ -178,9 +193,9 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
         }
 
         pub fn div(self: @This(), v: T) @This() {
-            var ret: @This() = undefined;
+            var ret = @This().initScalar(0);
             for (ret.e) |*val, idx| {
-                val.* = self.e[idx] / T;
+                val.* = (self.e[idx] / v);
             }
             return ret;
         }
@@ -188,7 +203,7 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
         pub fn mul(self: @This(), v: T) @This() {
             var ret: @This() = undefined;
             for (ret.e) |*val, idx| {
-                val.* = self.e[idx] * T;
+                val.* = self.e[idx] * v;
             }
             return ret;
         }
@@ -196,7 +211,7 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
         pub fn lenSquared(self: @This()) T {
             var acc: T = 0;
             for (self.e) |v| {
-                acc += v;
+                acc += v * v;
             }
             return acc;
         }
@@ -205,14 +220,15 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
             return std.math.sqrt(self.lenSquared());
         }
 
-        pub fn normOrZero(self: @This()) T {
+        pub fn normOrZero(self: @This()) @This() {
             if (@typeInfo(T) != .Float) {
                 @compileError("Can only normalize floats");
             }
-            const len = self.len();
-            if (len > 0) {
-                return self.div(len);
+            const l = self.len();
+            if (l > 0) {
+                return self.div(l);
             } else {
+                std.debug.warn("Zero vec\n", .{});
                 return @This().initScalar(0);
             }
         }
@@ -237,5 +253,27 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
             }
             return acc;
         }
+        pub fn lerp(self: @This(), other: @This(), t: T) @This() {
+            if (@typeInfo(T) != .Float) {
+                @compileError("Lerp can't be done with integers");
+            }
+            return self.mul(t).add(other.mul(1 - t));
+        }
     };
 }
+
+pub const Ray = struct {
+    // NOTE: If constructing, dir is expected to be a normal
+    dir: Vec(f32, 3),
+    pos: Vec(f32, 3),
+    pub fn init(unnormalized_dir: Vec(f32, 3), pos: Vec(f32, 3)) @This() {
+        return @This(){
+            .dir = unnormalized_dir.normOrZero(),
+            .pos = pos,
+        };
+    }
+
+    pub fn pointAtLen(self: @This(), t: f32) rmath.Vec(f32, 3) {
+        return self.pos.add(self.dir.mul(t));
+    }
+};
