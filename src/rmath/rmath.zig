@@ -176,7 +176,7 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
             return ret;
         }
 
-        pub fn hadamard(self: @This(), other: @This()) @This() {
+        pub fn hadamardMul(self: @This(), other: @This()) @This() {
             var ret: @This() = undefined;
             for (ret.e) |*val, idx| {
                 val.* = self.e[idx] * other.e[idx];
@@ -184,7 +184,7 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
             return ret;
         }
 
-        pub fn invHadamard(self: @This(), other: @This()) @This() {
+        pub fn hadamardDiv(self: @This(), other: @This()) @This() {
             var ret: @This() = undefined;
             for (ret.e) |*val, idx| {
                 val.* = self.e[idx] * other.e[idx];
@@ -248,8 +248,8 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
 
         pub fn dot(self: @This(), other: @This()) T {
             var acc: T = 0;
-            for (self.e) |val, i| {
-                acc = val * other[i];
+            for (self.e) |val, idx| {
+                acc += val * other.e[idx];
             }
             return acc;
         }
@@ -261,6 +261,7 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
         }
     };
 }
+pub const Vec3F32 = Vec(f32, 3);
 
 pub const Ray = struct {
     // NOTE: If constructing, dir is expected to be a normal
