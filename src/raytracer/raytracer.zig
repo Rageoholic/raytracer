@@ -5,11 +5,28 @@ const Allocator = std.mem.Allocator;
 const Random = std.rand.Random;
 
 pub fn TranslateRGBVecToRGBAPixelU8(vec: rmath.Vec3F32) RGBAPixelU8 {
+    const clamp_r = std.math.min(std.math.max(vec.r(), 0), 1);
+    const clamp_g = std.math.min(std.math.max(vec.g(), 0), 1);
+    const clamp_b = std.math.min(std.math.max(vec.b(), 0), 1);
+    const corrected_r = std.math.sqrt(clamp_r);
+    const corrected_g = std.math.sqrt(clamp_g);
+    const corrected_b = std.math.sqrt(clamp_b);
+
     return RGBAPixelU8{
-        .r = @floatToInt(u8, @round(vec.r() * 255.0)),
-        .g = @floatToInt(u8, @round(vec.g() * 255.0)),
-        .b = @floatToInt(u8, @round(vec.b() * 255.0)),
+        .r = @floatToInt(u8, @round(corrected_r * 255)),
+        .g = @floatToInt(u8, @round(corrected_g * 255)),
+        .b = @floatToInt(u8, @round(corrected_b * 255)),
         .a = 255,
+    };
+}
+
+fn random_bilateral_vec(random: *Random) rmath.Vec3F32 {
+    return rmath.Vec3F32{
+        .e = [_]f32{
+            (random.float(f32) * 2) - 1,
+            (random.float(f32) * 2) - 1,
+            (random.float(f32) * 2) - 1,
+        },
     };
 }
 
@@ -45,40 +62,57 @@ pub const World = struct {
                 const u = (@intToFloat(f32, x) + random.float(f32)) / @intToFloat(f32, image_width);
                 const v = 1 - (@intToFloat(f32, y) + random.float(f32)) / @intToFloat(f32, image_height);
                 const dir = lower_left_corner.add(horizontal.mul(u)).add(vertical.mul(v));
-                const ray = rmath.Ray3F32.init(
+                var ray = rmath.Ray3F32.init(
                     dir,
                     origin,
                 );
+                const attenuation = rmath.Vec3F32.initScalar(1);
+                var net_color = rmath.Vec3F32.initScalar(0);
+                var bounce_index: usize = 0;
+                const bounce_count = 8;
 
-                var material_opt: ?usize = null;
+                while (bounce_index < bounce_count) {
+                    defer bounce_index += 1;
+                    var material_opt: ?usize = null;
+                    var bounce_normal: ?rmath.Vec3F32 = null;
 
-                const t = (ray.dir.y() + 1) * 0.5;
+                    const t = (ray.dir.y() + 1) * 0.5;
 
-                const v1 = rmath.Vec3F32.initScalar(1);
-                const v2 = rmath.Vec3F32{ .e = [_]f32{ 0.5, 0.7, 1.0 } };
-                var col = v2.lerp(v1, t);
+                    const v1 = rmath.Vec3F32.initScalar(1);
+                    const v2 = rmath.Vec3F32{ .e = [_]f32{ 0.5, 0.7, 1.0 } };
+                    var col = v2.lerp(v1, t);
 
-                var distance: f32 = std.math.inf(f32);
+                    var distance: f32 = std.math.inf(f32);
 
-                for (self.spheres) |sphere| {
-                    const sphere_hit_opt = sphere.hit(ray);
-                    if (sphere_hit_opt) |sphere_hit| {
-                        if (sphere_hit.neg < distance and sphere_hit.neg > 0) {
-                            distance = sphere_hit.neg;
-                            material_opt = sphere.mat;
-                        }
-                        if (sphere_hit.pos < distance and sphere_hit.pos > 0) {
-                            distance = sphere_hit.neg;
-                            material_opt = sphere.mat;
+                    for (self.spheres) |sphere| {
+                        const sphere_hit_opt = sphere.hit(ray);
+                        if (sphere_hit_opt) |sphere_hit| {
+                            if (sphere_hit.neg < distance and sphere_hit.neg > 0.0001) {
+                                distance = sphere_hit.neg;
+                                material_opt = sphere.mat;
+                                bounce_normal = ray.getPointAtDistance(distance).sub(sphere.center).normOrZero();
+                            }
+                            if (sphere_hit.pos < distance and sphere_hit.pos > 0.0001) {
+                                distance = sphere_hit.neg;
+                                material_opt = sphere.mat;
+                                bounce_normal = ray.getPointAtDistance(distance).sub(sphere.center).normOrZero();
+                            }
                         }
                     }
+                    if (material_opt) |material_index| {
+                        const mat = self.materials[material_index];
+                        net_color = net_color.add(attenuation.hadamardMul(mat.emit));
+                        attenuation = attenuation.hadamardMul(mat.ref);
+                        ray.pos = ray.getPointAtDistance(distance);
+                        const pure_bounce = ray.dir.reflect(bounce_normal.?).normOrZero();
+                        const random_bounce = bounce_normal.?.add(random_bilateral_vec(random));
+                        ray.dir = pure_bounce.lerp(random_bounce, mat.specular);
+                    } else {
+                        net_color = net_color.add(attenuation.hadamardMul(col));
+                        break;
+                    }
                 }
-                if (material_opt) |material_index| {
-                    const mat = self.materials[material_index];
-                    net_samples = net_samples.add(mat.col);
-                } else {
-                    net_samples = net_samples.add(col);
-                }
+                net_samples = net_samples.add(net_color);
             }
 
             pixel = TranslateRGBVecToRGBAPixelU8(net_samples.div(@intToFloat(f32, sample_count)));

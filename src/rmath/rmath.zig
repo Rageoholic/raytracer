@@ -266,6 +266,12 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
             }
             return self.mul(t).add(other.mul(1 - t));
         }
+        pub fn reflect(self: @This(), normal: @This()) @This() {
+            const double_projected_vector_len = self.dot(normal) * -2;
+            const double_projected_vector = normal.mul(double_projected_vector_len);
+            const reflection_vector = double_projected_vector.add(self);
+            return reflection_vector;
+        }
     };
 }
 pub const Vec3F32 = Vec(f32, 3);

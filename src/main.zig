@@ -28,6 +28,18 @@ pub fn main() anyerror!void {
             .mat = 0,
         },
         raytracer.Sphere{
+            .center = rmath.Vec(f32, 3){ .e = [_]f32{ -1, 1, -2 } },
+            .radius = 0.5,
+            .mat = 0,
+        },
+
+        raytracer.Sphere{
+            .center = rmath.Vec(f32, 3){ .e = [_]f32{ 1, 1, -2 } },
+            .radius = 0.5,
+            .mat = 2,
+        },
+
+        raytracer.Sphere{
             .center = rmath.Vec(f32, 3){ .e = [_]f32{ 0, -100.5, -1 } },
             .radius = 100,
             .mat = 1,
@@ -35,8 +47,21 @@ pub fn main() anyerror!void {
     };
 
     const materials = [_]raytracer.Material{
-        raytracer.Material{ .col = rmath.Vec3F32{ .e = [_]f32{ 0.5, 0.5, 0.5 } } },
-        raytracer.Material{ .col = rmath.Vec3F32{ .e = [_]f32{ 0.7, 0.9, 0.1 } } },
+        raytracer.Material{
+            .ref = rmath.Vec3F32{ .e = [_]f32{ 0.5, 0.5, 0.5 } },
+            .emit = rmath.Vec3F32.initScalar(0),
+            .specular = 1,
+        },
+        raytracer.Material{
+            .ref = rmath.Vec3F32{ .e = [_]f32{ 0.7, 0.9, 0.1 } },
+            .emit = rmath.Vec3F32.initScalar(0),
+            .specular = 0.2,
+        },
+        raytracer.Material{
+            .ref = rmath.Vec3F32{ .e = [_]f32{ 0.7, 0.9, 0.1 } },
+            .emit = rmath.Vec3F32{ .e = [_]f32{ 0.5, 0.1, 0.1 } },
+            .specular = 0.2,
+        },
     };
 
     var world = raytracer.World{ .spheres = spheres[0..], .materials = materials[0..] };

@@ -50,5 +50,7 @@ const SphereHitRecord = struct {
 };
 
 pub const Material = struct {
-    col: rmath.Vec3F32,
+    ref: rmath.Vec3F32,
+    emit: rmath.Vec3F32,
+    specular: f32,
 };
