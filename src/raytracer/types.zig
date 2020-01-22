@@ -26,14 +26,24 @@ pub const ImageRGBAU8 = struct {
 pub const Sphere = struct {
     center: rmath.Vec3F32,
     radius: f32,
-    pub fn hit(self: @This(), ray: rmath.Ray) bool {
+    pub fn hit(self: @This(), ray: rmath.Ray3F32) ?SphereHitRecord {
         const sphere_relative_ray_pos = ray.pos.sub(self.center);
         const a = ray.dir.dot(ray.dir);
         const b = 2 * sphere_relative_ray_pos.dot(ray.dir);
         const c = sphere_relative_ray_pos.dot(sphere_relative_ray_pos) - self.radius * self.radius;
 
         const discriminant = b * b - 4 * a * c;
-
-        return (discriminant > 0);
+        if (discriminant < 0) {
+            return null;
+        } else {
+            const pos = (-b + std.math.sqrt(discriminant)) / (2 * a);
+            const neg = (-b - std.math.sqrt(discriminant)) / (2 * a);
+            return SphereHitRecord{ .pos = pos, .neg = neg };
+        }
     }
+};
+
+const SphereHitRecord = struct {
+    neg: f32,
+    pos: f32,
 };

@@ -168,10 +168,18 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
             return ret;
         }
 
+        pub fn addComponents(self: @This(), v: T) @This() {
+            var ret: @This() = undefined;
+            for (ret.e) |*val, idx| {
+                val.* = self.e[idx] + v;
+            }
+            return ret;
+        }
+
         pub fn sub(self: @This(), other: @This()) @This() {
             var ret: @This() = undefined;
             for (ret.e) |*val, idx| {
-                val.* = self.e[idx] + other.e[idx];
+                val.* = self.e[idx] - other.e[idx];
             }
             return ret;
         }
@@ -187,7 +195,7 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
         pub fn hadamardDiv(self: @This(), other: @This()) @This() {
             var ret: @This() = undefined;
             for (ret.e) |*val, idx| {
-                val.* = self.e[idx] * other.e[idx];
+                val.* = self.e[idx] / other.e[idx];
             }
             return ret;
         }
@@ -228,7 +236,6 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
             if (l > 0) {
                 return self.div(l);
             } else {
-                std.debug.warn("Zero vec\n", .{});
                 return @This().initScalar(0);
             }
         }
@@ -263,18 +270,21 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
 }
 pub const Vec3F32 = Vec(f32, 3);
 
-pub const Ray = struct {
-    // NOTE: If constructing, dir is expected to be a normal
-    dir: Vec(f32, 3),
-    pos: Vec(f32, 3),
-    pub fn init(unnormalized_dir: Vec(f32, 3), pos: Vec(f32, 3)) @This() {
-        return @This(){
-            .dir = unnormalized_dir.normOrZero(),
-            .pos = pos,
-        };
-    }
+pub fn Ray(comptime T: type, comptime S: usize) type {
+    return struct {
+        // NOTE: If constructing, dir is expected to be a normal
+        dir: Vec(T, S),
+        pos: Vec(T, S),
+        pub fn init(unnormalized_dir: Vec(f32, 3), pos: Vec(f32, 3)) @This() {
+            return @This(){
+                .dir = unnormalized_dir.normOrZero(),
+                .pos = pos,
+            };
+        }
 
-    pub fn pointAtLen(self: @This(), t: f32) rmath.Vec(f32, 3) {
-        return self.pos.add(self.dir.mul(t));
-    }
-};
+        pub fn getPointAtDistance(self: @This(), t: f32) Vec(T, S) {
+            return self.pos.add(self.dir.mul(t));
+        }
+    };
+}
+pub const Ray3F32 = Ray(f32, 3);

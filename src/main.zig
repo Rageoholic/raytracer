@@ -23,12 +23,15 @@ pub fn main() anyerror!void {
     const image_height = 900;
     const spheres = [_]raytracer.Sphere{
         raytracer.Sphere{
-            .center = rmath.Vec(f32, 3){ .e = [_]f32{ 0, 0, -1 } },
+            .center = rmath.Vec(f32, 3){ .e = [_]f32{ 0, 0, 1 } },
             .radius = 0.5,
         },
     };
-    var world = try raytracer.World.init(&primary_allocator.allocator, spheres[0..]);
-    const image = try world.raytraceImage(0, 0, 0, image_width, image_height);
+
+    var world = raytracer.World{ .spheres = spheres[0..] };
+
+    var image = try world.raytraceImage(&primary_allocator.allocator, 0, 0, 0, image_width, image_height);
+    defer image.deinit();
 
     try easyfb_instance.renderRGBAImageSync(@sliceToBytes(image.pixels), image.width, image.height, "raytraced image");
 }
