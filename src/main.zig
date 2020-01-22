@@ -23,14 +23,18 @@ pub fn main() anyerror!void {
     const image_height = 900;
     const spheres = [_]raytracer.Sphere{
         raytracer.Sphere{
-            .center = rmath.Vec(f32, 3){ .e = [_]f32{ 0, 0, 1 } },
+            .center = rmath.Vec(f32, 3){ .e = [_]f32{ 0, 0, -1 } },
             .radius = 0.5,
+        },
+        raytracer.Sphere{
+            .center = rmath.Vec(f32, 3){ .e = [_]f32{ 0, -100.5, -1 } },
+            .radius = 100,
         },
     };
 
     var world = raytracer.World{ .spheres = spheres[0..] };
-
-    var image = try world.raytraceImage(&primary_allocator.allocator, 0, 0, 0, image_width, image_height);
+    var rand = std.rand.Pcg.init(0);
+    var image = try world.raytraceImage(&primary_allocator.allocator, &rand.random, image_width, image_height, 4);
     defer image.deinit();
 
     try easyfb_instance.renderRGBAImageSync(@sliceToBytes(image.pixels), image.width, image.height, "raytraced image");
