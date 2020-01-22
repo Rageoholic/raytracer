@@ -26,6 +26,7 @@ pub const ImageRGBAU8 = struct {
 pub const Sphere = struct {
     center: rmath.Vec3F32,
     radius: f32,
+    mat: usize,
     pub fn hit(self: @This(), ray: rmath.Ray3F32) ?SphereHitRecord {
         const sphere_relative_ray_pos = ray.pos.sub(self.center);
         const a = ray.dir.dot(ray.dir);
@@ -46,4 +47,8 @@ pub const Sphere = struct {
 const SphereHitRecord = struct {
     neg: f32,
     pos: f32,
+};
+
+pub const Material = struct {
+    col: rmath.Vec3F32,
 };

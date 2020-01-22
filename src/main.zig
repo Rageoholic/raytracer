@@ -25,14 +25,21 @@ pub fn main() anyerror!void {
         raytracer.Sphere{
             .center = rmath.Vec(f32, 3){ .e = [_]f32{ 0, 0, -1 } },
             .radius = 0.5,
+            .mat = 0,
         },
         raytracer.Sphere{
             .center = rmath.Vec(f32, 3){ .e = [_]f32{ 0, -100.5, -1 } },
             .radius = 100,
+            .mat = 1,
         },
     };
 
-    var world = raytracer.World{ .spheres = spheres[0..] };
+    const materials = [_]raytracer.Material{
+        raytracer.Material{ .col = rmath.Vec3F32{ .e = [_]f32{ 0.5, 0.5, 0.5 } } },
+        raytracer.Material{ .col = rmath.Vec3F32{ .e = [_]f32{ 0.7, 0.9, 0.1 } } },
+    };
+
+    var world = raytracer.World{ .spheres = spheres[0..], .materials = materials[0..] };
     var rand = std.rand.Pcg.init(0);
     var image = try world.raytraceImage(&primary_allocator.allocator, &rand.random, image_width, image_height, 4);
     defer image.deinit();

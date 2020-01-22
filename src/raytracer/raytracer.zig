@@ -13,19 +13,9 @@ pub fn TranslateRGBVecToRGBAPixelU8(vec: rmath.Vec3F32) RGBAPixelU8 {
     };
 }
 
-fn getSphereColor(
-    world: World,
-    sphere: Sphere,
-    ray: rmath.Ray3F32,
-    t: f32,
-) rmath.Vec3F32 {
-    const surface_pos = ray.getPointAtDistance(t);
-    return surface_pos.sub(sphere.center).normOrZero().addComponents(1).mul(0.5);
-}
-
 pub const World = struct {
     spheres: []const Sphere,
-
+    materials: []const Material,
     pub fn raytraceImage(
         self: *@This(),
         allocator: *Allocator,
@@ -60,28 +50,35 @@ pub const World = struct {
                     origin,
                 );
 
+                var material_opt: ?usize = null;
+
                 const t = (ray.dir.y() + 1) * 0.5;
 
                 const v1 = rmath.Vec3F32.initScalar(1);
                 const v2 = rmath.Vec3F32{ .e = [_]f32{ 0.5, 0.7, 1.0 } };
-
                 var col = v2.lerp(v1, t);
+
                 var distance: f32 = std.math.inf(f32);
 
                 for (self.spheres) |sphere| {
                     const sphere_hit_opt = sphere.hit(ray);
                     if (sphere_hit_opt) |sphere_hit| {
                         if (sphere_hit.neg < distance and sphere_hit.neg > 0) {
-                            col = getSphereColor(self.*, sphere, ray, sphere_hit.neg);
                             distance = sphere_hit.neg;
+                            material_opt = sphere.mat;
                         }
                         if (sphere_hit.pos < distance and sphere_hit.pos > 0) {
-                            col = getSphereColor(self.*, sphere, ray, sphere_hit.pos);
                             distance = sphere_hit.neg;
+                            material_opt = sphere.mat;
                         }
                     }
                 }
-                net_samples = net_samples.add(col);
+                if (material_opt) |material_index| {
+                    const mat = self.materials[material_index];
+                    net_samples = net_samples.add(mat.col);
+                } else {
+                    net_samples = net_samples.add(col);
+                }
             }
 
             pixel = TranslateRGBVecToRGBAPixelU8(net_samples.div(@intToFloat(f32, sample_count)));
