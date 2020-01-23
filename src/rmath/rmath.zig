@@ -295,3 +295,7 @@ pub fn Ray(comptime T: type, comptime S: usize) type {
     };
 }
 pub const Ray3F32 = Ray(f32, 3);
+
+pub fn vec3(x: f32, y: f32, z: f32) Vec3F32 {
+    return .{ .e = [3]f32{ x, y, z } };
+}

@@ -32,6 +32,7 @@ fn random_bilateral_vec(random: *Random) rmath.Vec3F32 {
 
 pub const World = struct {
     spheres: []const Sphere,
+    planes: []const Plane,
     materials: []const Material,
     pub fn raytraceImage(
         self: *@This(),
@@ -52,18 +53,12 @@ pub const World = struct {
         const half_width = aspect * half_height;
 
         const camera_z = camera_pos.sub(camera_targ).normOrZero();
-        std.debug.warn("{} {} {}\n", .{ camera_z.x(), camera_z.y(), camera_z.z() });
         const camera_x = camera_up.cross(camera_z).normOrZero();
-        std.debug.warn("{} {} {}\n", .{ camera_x.x(), camera_x.y(), camera_x.z() });
         const camera_y = camera_z.cross(camera_x);
-        std.debug.warn("{} {} {}\n", .{ camera_y.x(), camera_y.y(), camera_y.z() });
 
         const lower_left_corner = camera_pos.sub(camera_x.mul(half_width)).sub(camera_y.mul(half_height)).sub(camera_z);
-        std.debug.warn("{} {} {}\n", .{ lower_left_corner.x(), lower_left_corner.y(), lower_left_corner.z() });
         const horizontal = camera_x.mul(2 * half_width);
-        std.debug.warn("{} {} {}\n", .{ horizontal.x(), horizontal.y(), horizontal.z() });
         const vertical = camera_y.mul(2 * half_height);
-        std.debug.warn("{} {} {}\n", .{ vertical.x(), vertical.y(), vertical.z() });
 
         for (image.pixels) |pixel, i| {
             const x = i % image_width;
@@ -110,6 +105,15 @@ pub const World = struct {
                                 distance = sphere_hit.neg;
                                 material_opt = sphere.mat;
                                 bounce_normal = ray.getPointAtDistance(distance).sub(sphere.center).normOrZero();
+                            }
+                        }
+                    }
+                    for (self.planes) |plane| {
+                        if (plane.hit(ray)) |plane_hit| {
+                            if (plane_hit.distance < distance and plane_hit.distance > 0.0001) {
+                                distance = plane_hit.distance;
+                                material_opt = plane.mat;
+                                bounce_normal = plane.norm;
                             }
                         }
                     }

@@ -56,3 +56,23 @@ pub const Material = union(enum) {
         specular: f32,
     },
 };
+
+pub const Plane = struct {
+    norm: rmath.Vec3F32,
+    distance_from_origin: f32,
+    mat: usize,
+
+    pub fn hit(self: @This(), ray: rmath.Ray3F32) ?PlaneHitRecord {
+        const denom = self.norm.dot(ray.dir);
+        if (std.math.absFloat(denom) > 0) {
+            const distance = (self.distance_from_origin - self.norm.dot(ray.pos)) / denom;
+            return PlaneHitRecord{ .distance = distance };
+        } else {
+            return null;
+        }
+    }
+};
+
+const PlaneHitRecord = struct {
+    distance: f32,
+};

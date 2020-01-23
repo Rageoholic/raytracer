@@ -39,9 +39,17 @@ pub fn main() anyerror!void {
             .mat = 2,
         },
 
-        raytracer.Sphere{
-            .center = rmath.Vec(f32, 3){ .e = [_]f32{ 0, -100.5, -1 } },
-            .radius = 100,
+        // raytracer.Sphere{
+        //     .center = rmath.Vec(f32, 3){ .e = [_]f32{ 0, -100.5, -1 } },
+        //     .radius = 100,
+        //     .mat = 1,
+        // },
+    };
+
+    const planes = [_]raytracer.Plane{
+        raytracer.Plane{
+            .norm = rmath.Vec(f32, 3){ .e = [_]f32{ 0, 1, 0 } },
+            .distance_from_origin = -0.5,
             .mat = 1,
         },
     };
@@ -70,9 +78,13 @@ pub fn main() anyerror!void {
         },
     };
 
-    var world = raytracer.World{ .spheres = spheres[0..], .materials = materials[0..] };
+    var world = raytracer.World{
+        .spheres = spheres[0..],
+        .materials = materials[0..],
+        .planes = planes[0..],
+    };
     var rand = std.rand.Pcg.init(0);
-    const camera_pos = rmath.Vec3F32{ .e = [3]f32{ 0, 4, 10 } };
+    const camera_pos = rmath.Vec3F32{ .e = [3]f32{ 0, 1, 3 } };
     const camera_targ = rmath.Vec3F32{ .e = [3]f32{ 0, 0, 0 } };
     const camera_up = rmath.Vec3F32{ .e = [3]f32{ 0, 1, 0 } };
     var timer = try std.time.Timer.start();
@@ -85,7 +97,7 @@ pub fn main() anyerror!void {
         camera_targ,
         camera_up,
         90,
-        16,
+        4,
     );
     const time_ns = timer.read();
     std.debug.warn("{} ns, {} s", .{ time_ns, @intToFloat(f32, time_ns) / 1000000000 });
