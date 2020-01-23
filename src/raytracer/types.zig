@@ -49,8 +49,10 @@ const SphereHitRecord = struct {
     pos: f32,
 };
 
-pub const Material = struct {
-    ref: rmath.Vec3F32,
-    emit: rmath.Vec3F32,
-    specular: f32,
+pub const Material = union(enum) {
+    Metal: struct {
+        ref: rmath.Vec3F32,
+        emit: rmath.Vec3F32,
+        specular: f32,
+    },
 };

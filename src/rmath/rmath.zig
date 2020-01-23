@@ -236,11 +236,12 @@ pub fn Vec(comptime T: type, comptime S: usize) type {
             if (l > 0) {
                 return self.div(l);
             } else {
+                std.debug.warn("Zero'd norm", .{});
                 return @This().initScalar(0);
             }
         }
 
-        pub fn cross(self: @This(), other: @This()) T {
+        pub fn cross(self: @This(), other: @This()) @This() {
             if (S != 3) {
                 @compileError("Cross Product is a 3d operation");
             }

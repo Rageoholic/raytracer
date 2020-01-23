@@ -39,17 +39,31 @@ pub const World = struct {
         random: *Random,
         image_width: u32,
         image_height: u32,
+        camera_pos: rmath.Vec3F32,
+        camera_targ: rmath.Vec3F32,
+        camera_up: rmath.Vec3F32,
+        vfov: f32,
         sample_count: u5,
     ) error{OutOfMemory}!ImageRGBAU8 {
         const image = try ImageRGBAU8.init(allocator, image_width, image_height);
+        const theta = vfov / 180 * std.math.pi;
         const aspect = @intToFloat(f32, image_width) / @intToFloat(f32, image_height);
+        const half_height = std.math.tan(theta / 2);
+        const half_width = aspect * half_height;
 
-        // TODO: Field of view
-        const n = aspect;
-        const lower_left_corner = rmath.Vec3F32{ .e = [3]f32{ -n, -1, -1 } };
-        const horizontal = rmath.Vec3F32{ .e = [3]f32{ n * 2, 0, 0 } };
-        const vertical = rmath.Vec3F32{ .e = [3]f32{ 0, 2, 0 } };
-        const origin = rmath.Vec3F32.initScalar(0);
+        const camera_z = camera_pos.sub(camera_targ).normOrZero();
+        std.debug.warn("{} {} {}\n", .{ camera_z.x(), camera_z.y(), camera_z.z() });
+        const camera_x = camera_up.cross(camera_z).normOrZero();
+        std.debug.warn("{} {} {}\n", .{ camera_x.x(), camera_x.y(), camera_x.z() });
+        const camera_y = camera_z.cross(camera_x);
+        std.debug.warn("{} {} {}\n", .{ camera_y.x(), camera_y.y(), camera_y.z() });
+
+        const lower_left_corner = camera_pos.sub(camera_x.mul(half_width)).sub(camera_y.mul(half_height)).sub(camera_z);
+        std.debug.warn("{} {} {}\n", .{ lower_left_corner.x(), lower_left_corner.y(), lower_left_corner.z() });
+        const horizontal = camera_x.mul(2 * half_width);
+        std.debug.warn("{} {} {}\n", .{ horizontal.x(), horizontal.y(), horizontal.z() });
+        const vertical = camera_y.mul(2 * half_height);
+        std.debug.warn("{} {} {}\n", .{ vertical.x(), vertical.y(), vertical.z() });
 
         for (image.pixels) |pixel, i| {
             const x = i % image_width;
@@ -61,10 +75,10 @@ pub const World = struct {
                 defer sample_index += 1;
                 const u = (@intToFloat(f32, x) + random.float(f32)) / @intToFloat(f32, image_width);
                 const v = 1 - (@intToFloat(f32, y) + random.float(f32)) / @intToFloat(f32, image_height);
-                const dir = lower_left_corner.add(horizontal.mul(u)).add(vertical.mul(v));
+                const dir = lower_left_corner.add(horizontal.mul(u)).add(vertical.mul(v)).sub(camera_pos);
                 var ray = rmath.Ray3F32.init(
                     dir,
-                    origin,
+                    camera_pos,
                 );
                 const attenuation = rmath.Vec3F32.initScalar(1);
                 var net_color = rmath.Vec3F32.initScalar(0);
@@ -101,12 +115,16 @@ pub const World = struct {
                     }
                     if (material_opt) |material_index| {
                         const mat = self.materials[material_index];
-                        net_color = net_color.add(attenuation.hadamardMul(mat.emit));
-                        attenuation = attenuation.hadamardMul(mat.ref);
-                        ray.pos = ray.getPointAtDistance(distance);
-                        const pure_bounce = ray.dir.reflect(bounce_normal.?).normOrZero();
-                        const random_bounce = bounce_normal.?.add(random_bilateral_vec(random));
-                        ray.dir = pure_bounce.lerp(random_bounce, mat.specular);
+                        switch (mat) {
+                            .Metal => |metal| {
+                                net_color = net_color.add(attenuation.hadamardMul(metal.emit));
+                                attenuation = attenuation.hadamardMul(metal.ref);
+                                ray.pos = ray.getPointAtDistance(distance);
+                                const pure_bounce = ray.dir.reflect(bounce_normal.?).normOrZero();
+                                const random_bounce = bounce_normal.?.add(random_bilateral_vec(random));
+                                ray.dir = pure_bounce.lerp(random_bounce, metal.specular);
+                            },
+                        }
                     } else {
                         net_color = net_color.add(attenuation.hadamardMul(col));
                         break;
