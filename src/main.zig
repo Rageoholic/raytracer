@@ -25,7 +25,7 @@ pub fn main() anyerror!void {
         raytracer.Sphere{
             .center = rmath.Vec(f32, 3){ .e = [_]f32{ 0, 0, -1 } },
             .radius = 0.5,
-            .mat = 0,
+            .mat = 5,
         },
         raytracer.Sphere{
             .center = rmath.Vec(f32, 3){ .e = [_]f32{ -1, 1, -2 } },
@@ -61,37 +61,44 @@ pub fn main() anyerror!void {
 
     const materials = [_]raytracer.Material{
         .{
-            .Metal = .{
+            .Default = .{
                 .ref = rmath.Vec3F32{ .e = [_]f32{ 0.5, 0.5, 0.5 } },
                 .emit = rmath.Vec3F32.initScalar(0),
                 .specular = 1,
             },
         },
         .{
-            .Metal = .{
+            .Default = .{
                 .ref = rmath.Vec3F32{ .e = [_]f32{ 0.3, 0.9, 0.1 } },
                 .emit = rmath.Vec3F32.initScalar(0),
                 .specular = 0.2,
             },
         },
         .{
-            .Metal = .{
+            .Default = .{
                 .ref = rmath.Vec3F32{ .e = [_]f32{ 0.7, 0.9, 0.1 } },
                 .emit = rmath.Vec3F32{ .e = [_]f32{ 0.5, 0.1, 0.1 } },
                 .specular = 0.7,
             },
         },
         .{
-            .Metal = .{
+            .Default = .{
                 .ref = rmath.Vec3F32{ .e = [_]f32{ 0.7, 0.9, 0.1 } },
                 .emit = rmath.Vec3F32{ .e = [_]f32{ 0.5, 0.1, 0.8 } },
                 .specular = 0.7,
             },
         },
         .{
-            .Metal = .{
+            .Default = .{
                 .ref = rmath.Vec3F32{ .e = [_]f32{ 0, 0, 0 } },
                 .emit = rmath.Vec3F32{ .e = [_]f32{ 0.5, 0.1, 0.8 } },
+                .specular = 0.7,
+            },
+        },
+        .{
+            .Default = .{
+                .ref = rmath.Vec3F32{ .e = [_]f32{ 0, 0, 0 } },
+                .emit = rmath.Vec3F32{ .e = [_]f32{ 1, 0.1, 1 } },
                 .specular = 0.7,
             },
         },
@@ -103,8 +110,8 @@ pub fn main() anyerror!void {
         .planes = planes[0..],
     };
     var rand = std.rand.Pcg.init(0);
-    const camera_pos = rmath.Vec3F32{ .e = [3]f32{ 0, 1, 3 } };
-    const camera_targ = rmath.Vec3F32{ .e = [3]f32{ 0, 0, 0 } };
+    const camera_pos = rmath.Vec3F32{ .e = [3]f32{ 0, 0, 0 } };
+    const camera_targ = rmath.Vec3F32{ .e = [3]f32{ 0, 0, -1 } };
     const camera_up = rmath.Vec3F32{ .e = [3]f32{ 0, 1, 0 } };
 
     var image = try world.raytraceImage(
@@ -116,6 +123,7 @@ pub fn main() anyerror!void {
         camera_targ,
         camera_up,
         90,
+        0.01,
         32,
     );
     defer image.deinit();

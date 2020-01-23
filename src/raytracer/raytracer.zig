@@ -45,12 +45,14 @@ pub const World = struct {
         camera_targ: rmath.Vec3F32,
         camera_up: rmath.Vec3F32,
         vfov: f32,
+        aperature: f32,
         sample_count: usize,
     ) error{
         OutOfMemory,
         TimerUnsupported,
     }!ImageRGBAU8 {
         const image = try ImageRGBAU8.init(allocator, image_width, image_height);
+        const lens_radius = aperature / 2;
         const theta = vfov / 180 * std.math.pi;
         const aspect = @intToFloat(f32, image_width) / @intToFloat(f32, image_height);
         const half_height = std.math.tan(theta / 2);
@@ -74,12 +76,14 @@ pub const World = struct {
             var sample_index: usize = 0;
             while (sample_index < sample_count) {
                 defer sample_index += 1;
+                const rd = random_bilateral_vec(random).mul(lens_radius);
+                const offset = camera_x.mul(rd.x()).add(camera_y.mul(rd.y()));
                 const u = (@intToFloat(f32, x) + random.float(f32)) / @intToFloat(f32, image_width);
                 const v = 1 - (@intToFloat(f32, y) + random.float(f32)) / @intToFloat(f32, image_height);
-                const dir = lower_left_corner.add(horizontal.mul(u)).add(vertical.mul(v)).sub(camera_pos);
+                const dir = lower_left_corner.add(horizontal.mul(u)).add(vertical.mul(v)).sub(camera_pos).sub(offset);
                 var ray = rmath.Ray3F32.init(
                     dir,
-                    camera_pos,
+                    camera_pos.add(offset),
                 );
                 const attenuation = rmath.Vec3F32.initScalar(1);
                 var net_color = rmath.Vec3F32.initScalar(0);
@@ -106,12 +110,12 @@ pub const World = struct {
                             if (sphere_hit.neg < distance and sphere_hit.neg > 0.0001) {
                                 distance = sphere_hit.neg;
                                 material_opt = sphere.mat;
-                                bounce_normal = ray.getPointAtDistance(distance).sub(sphere.center).normOrZero();
+                                bounce_normal = ray.getPointAtDistance(sphere_hit.neg).sub(sphere.center).normOrZero();
                             }
                             if (sphere_hit.pos < distance and sphere_hit.pos > 0.0001) {
-                                distance = sphere_hit.neg;
+                                distance = sphere_hit.pos;
                                 material_opt = sphere.mat;
-                                bounce_normal = ray.getPointAtDistance(distance).sub(sphere.center).normOrZero();
+                                bounce_normal = ray.getPointAtDistance(sphere_hit.pos).sub(sphere.center).normOrZero();
                             }
                         }
                     }
@@ -127,7 +131,7 @@ pub const World = struct {
                     if (material_opt) |material_index| {
                         const mat = self.materials[material_index];
                         switch (mat) {
-                            .Metal => |metal| {
+                            .Default => |metal| {
                                 net_color = net_color.add(attenuation.hadamardMul(metal.emit));
                                 attenuation = attenuation.hadamardMul(metal.ref);
                                 ray.pos = ray.getPointAtDistance(distance);
