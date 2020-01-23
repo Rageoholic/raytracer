@@ -38,12 +38,17 @@ pub fn main() anyerror!void {
             .radius = 0.5,
             .mat = 2,
         },
+        raytracer.Sphere{
+            .center = rmath.vec3(3, 1, -2),
+            .radius = 1,
+            .mat = 3,
+        },
 
-        // raytracer.Sphere{
-        //     .center = rmath.Vec(f32, 3){ .e = [_]f32{ 0, -100.5, -1 } },
-        //     .radius = 100,
-        //     .mat = 1,
-        // },
+        raytracer.Sphere{
+            .center = rmath.vec3(6, 2, -8),
+            .radius = 2,
+            .mat = 4,
+        },
     };
 
     const planes = [_]raytracer.Plane{
@@ -73,7 +78,21 @@ pub fn main() anyerror!void {
             .Metal = .{
                 .ref = rmath.Vec3F32{ .e = [_]f32{ 0.7, 0.9, 0.1 } },
                 .emit = rmath.Vec3F32{ .e = [_]f32{ 0.5, 0.1, 0.1 } },
-                .specular = 0.2,
+                .specular = 0.7,
+            },
+        },
+        .{
+            .Metal = .{
+                .ref = rmath.Vec3F32{ .e = [_]f32{ 0.7, 0.9, 0.1 } },
+                .emit = rmath.Vec3F32{ .e = [_]f32{ 0.5, 0.1, 0.8 } },
+                .specular = 0.7,
+            },
+        },
+        .{
+            .Metal = .{
+                .ref = rmath.Vec3F32{ .e = [_]f32{ 0, 0, 0 } },
+                .emit = rmath.Vec3F32{ .e = [_]f32{ 0.5, 0.1, 0.8 } },
+                .specular = 0.7,
             },
         },
     };
@@ -87,7 +106,7 @@ pub fn main() anyerror!void {
     const camera_pos = rmath.Vec3F32{ .e = [3]f32{ 0, 1, 3 } };
     const camera_targ = rmath.Vec3F32{ .e = [3]f32{ 0, 0, 0 } };
     const camera_up = rmath.Vec3F32{ .e = [3]f32{ 0, 1, 0 } };
-    var timer = try std.time.Timer.start();
+
     var image = try world.raytraceImage(
         &primary_allocator.allocator,
         &rand.random,
@@ -97,10 +116,8 @@ pub fn main() anyerror!void {
         camera_targ,
         camera_up,
         90,
-        4,
+        32,
     );
-    const time_ns = timer.read();
-    std.debug.warn("{} ns, {} s", .{ time_ns, @intToFloat(f32, time_ns) / 1000000000 });
     defer image.deinit();
 
     try easyfb_instance.renderRGBAImageSync(@sliceToBytes(image.pixels), image.width, image.height, "raytraced image");

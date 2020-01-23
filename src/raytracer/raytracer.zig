@@ -34,6 +34,7 @@ pub const World = struct {
     spheres: []const Sphere,
     planes: []const Plane,
     materials: []const Material,
+
     pub fn raytraceImage(
         self: *@This(),
         allocator: *Allocator,
@@ -44,8 +45,11 @@ pub const World = struct {
         camera_targ: rmath.Vec3F32,
         camera_up: rmath.Vec3F32,
         vfov: f32,
-        sample_count: u5,
-    ) error{OutOfMemory}!ImageRGBAU8 {
+        sample_count: usize,
+    ) error{
+        OutOfMemory,
+        TimerUnsupported,
+    }!ImageRGBAU8 {
         const image = try ImageRGBAU8.init(allocator, image_width, image_height);
         const theta = vfov / 180 * std.math.pi;
         const aspect = @intToFloat(f32, image_width) / @intToFloat(f32, image_height);
@@ -60,12 +64,14 @@ pub const World = struct {
         const horizontal = camera_x.mul(2 * half_width);
         const vertical = camera_y.mul(2 * half_height);
 
+        var timer = try std.time.Timer.start();
+        var total_bounce_count: usize = 0;
         for (image.pixels) |pixel, i| {
             const x = i % image_width;
             const y = @divFloor(i, image_width);
             const net_samples = rmath.Vec3F32.initScalar(0);
 
-            var sample_index: u5 = 0;
+            var sample_index: usize = 0;
             while (sample_index < sample_count) {
                 defer sample_index += 1;
                 const u = (@intToFloat(f32, x) + random.float(f32)) / @intToFloat(f32, image_width);
@@ -82,6 +88,7 @@ pub const World = struct {
 
                 while (bounce_index < bounce_count) {
                     defer bounce_index += 1;
+                    defer total_bounce_count += 1;
                     var material_opt: ?usize = null;
                     var bounce_normal: ?rmath.Vec3F32 = null;
 
@@ -139,6 +146,14 @@ pub const World = struct {
 
             pixel = TranslateRGBVecToRGBAPixelU8(net_samples.div(@intToFloat(f32, sample_count)));
         }
+        const time_ns = timer.read();
+        std.debug.warn("{} ns, {} s,{} bounces, approx {} ns per bounce\n", .{
+            time_ns,
+            @intToFloat(f32, time_ns) / 1000000000,
+            total_bounce_count,
+            time_ns / total_bounce_count,
+        });
+
         return image;
     }
 };
