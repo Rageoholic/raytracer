@@ -76,3 +76,58 @@ pub const Plane = struct {
 const PlaneHitRecord = struct {
     distance: f32,
 };
+
+pub const Camera = struct {
+    camera_z: rmath.Vec3F32,
+    camera_x: rmath.Vec3F32,
+    camera_y: rmath.Vec3F32,
+    pos: rmath.Vec3F32,
+
+    lower_left_corner: rmath.Vec3F32,
+    vertical: rmath.Vec3F32,
+    horizontal: rmath.Vec3F32,
+
+    pub fn init(
+        pos: rmath.Vec3F32,
+        targ: rmath.Vec3F32,
+        up: rmath.Vec3F32,
+        vfov: f32,
+        aspect: f32,
+    ) @This() {
+        const theta = vfov / 180 * std.math.pi;
+        const half_height = std.math.tan(theta / 2);
+        const half_width = aspect * half_height;
+
+        const camera_z = pos.sub(targ).normOrZero();
+        const camera_x = up.cross(camera_z).normOrZero();
+        const camera_y = camera_z.cross(camera_x);
+
+        const lower_left_corner = pos.sub(camera_x.mul(half_width)).sub(camera_y.mul(half_height)).sub(camera_z);
+        const horizontal = camera_x.mul(2 * half_width);
+        const vertical = camera_y.mul(2 * half_height);
+
+        return .{
+            .camera_x = camera_x,
+            .camera_y = camera_y,
+            .camera_z = camera_z,
+            .lower_left_corner = lower_left_corner,
+            .horizontal = horizontal,
+            .vertical = vertical,
+            .pos = pos,
+        };
+    }
+
+    pub fn ray(self: @This(), u: f32, v: f32) rmath.Ray3F32 {
+        const dir = self.lower_left_corner.add(
+            self.horizontal.mul(u),
+        ).add(
+            self.vertical.mul(v),
+        ).sub(
+            self.pos,
+        );
+        return rmath.Ray3F32.init(
+            dir,
+            self.pos,
+        );
+    }
+};

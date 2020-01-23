@@ -123,8 +123,7 @@ pub fn main() anyerror!void {
         camera_targ,
         camera_up,
         90,
-        0.01,
-        32,
+        64,
     );
     defer image.deinit();
 
