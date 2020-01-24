@@ -110,22 +110,43 @@ pub fn main() anyerror!void {
         .planes = planes[0..],
     };
     var rand = std.rand.Pcg.init(0);
-    const camera_pos = rmath.Vec3F32{ .e = [3]f32{ 0, 0, 0 } };
+    const camera_pos = rmath.Vec3F32{ .e = [3]f32{ 0, 1, 4 } };
     const camera_targ = rmath.Vec3F32{ .e = [3]f32{ 0, 0, -1 } };
     const camera_up = rmath.Vec3F32{ .e = [3]f32{ 0, 1, 0 } };
+    const aspect = @intToFloat(f32, image_width) / @intToFloat(f32, image_height);
 
-    var image = try world.raytraceImage(
+    const cpu_count = std.Thread.cpuCount() catch |err| 1;
+
+    var image = try raytracer.ImageRGBAU8.init(
         &primary_allocator.allocator,
-        &rand.random,
         image_width,
         image_height,
-        camera_pos,
-        camera_targ,
-        camera_up,
-        90,
-        64,
     );
     defer image.deinit();
 
-    try easyfb_instance.renderRGBAImageSync(@sliceToBytes(image.pixels), image.width, image.height, "raytraced image");
+    const tiles = try image.divideIntoTiles(&primary_allocator.allocator, cpu_count);
+    defer primary_allocator.allocator.free(tiles);
+
+    const camera = raytracer.Camera.init(camera_pos, camera_targ, camera_up, 60, aspect);
+    std.debug.warn("{} cpus on this machine\n", .{cpu_count});
+
+    var timer = try std.time.Timer.start();
+    for (tiles) |tile| {
+        world.raytraceTile(&rand.random, tile, camera, image, 16);
+    }
+
+    const time_ns = timer.read();
+    std.debug.warn("{} ns, {} s,{} bounces, approx {} ns per bounce\n", .{
+        time_ns,
+        @intToFloat(f32, time_ns) / 1000000000,
+        world.bounce_count,
+        time_ns / world.bounce_count,
+    });
+
+    try easyfb_instance.renderRGBAImageSync(
+        @sliceToBytes(image.pixels),
+        image.width,
+        image.height,
+        "simple raytracer",
+    );
 }

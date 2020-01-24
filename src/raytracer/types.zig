@@ -9,17 +9,41 @@ pub const RGBAPixelU8 = packed struct {
     a: u8,
 };
 
+pub const Tile = struct {
+    x: usize,
+    y: usize,
+    width: usize,
+    height: usize,
+};
+
 pub const ImageRGBAU8 = struct {
     width: u32,
     height: u32,
     pixels: []RGBAPixelU8,
     allocator: *Allocator,
+
     pub fn init(allocator: *Allocator, width: u32, height: u32) !@This() {
         const pixels = try allocator.alloc(RGBAPixelU8, width * height);
+        std.mem.secureZero(RGBAPixelU8, pixels);
         return @This(){ .width = width, .height = height, .pixels = pixels, .allocator = allocator };
     }
     pub fn deinit(self: *@This()) void {
         self.allocator.free(self.pixels);
+    }
+
+    pub fn divideIntoTiles(self: *@This(), allocator: *Allocator, n: usize) ![]Tile {
+        const tiles = try allocator.alloc(Tile, n);
+        const tile_height = (self.height + n - 1) / n; // Prefer higher values
+        const tile_width = self.width;
+        for (tiles) |tile, i| {
+            tile = .{
+                .x = 0,
+                .y = tile_height * i,
+                .width = tile_width,
+                .height = std.math.min(tile_height, self.height - tile_height * i),
+            };
+        }
+        return tiles;
     }
 };
 

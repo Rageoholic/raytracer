@@ -34,6 +34,7 @@ pub const World = struct {
     spheres: []const Sphere,
     planes: []const Plane,
     materials: []const Material,
+    bounce_count: usize = 0,
     const RaytraceResult = struct {
         col: rmath.Vec3F32,
         bounce_count: usize,
@@ -102,8 +103,47 @@ pub const World = struct {
         }
         return .{ .col = net_color, .bounce_count = bounce_count };
     }
+
+    pub fn raytraceTile(
+        self: *@This(),
+        random: *Random,
+        tile: Tile,
+        camera: Camera,
+        image: ImageRGBAU8,
+        sample_count: usize,
+    ) void {
+        var y = tile.y;
+        while (y < (tile.height + tile.y)) : (y += 1) {
+            var x = tile.x;
+            while (x < (tile.width + tile.x)) : (x += 1) {
+                const pixel_index = x + image.width * y;
+
+                const pixel = &image.pixels[x + image.width * y];
+
+                const net_samples = rmath.Vec3F32.initScalar(0);
+
+                var sample_index: usize = 0;
+                while (sample_index < sample_count) {
+                    defer sample_index += 1;
+                    const u = (@intToFloat(f32, x) + random.float(f32)) /
+                        @intToFloat(f32, image.width);
+                    const v = 1 - (@intToFloat(f32, y) + random.float(f32)) /
+                        @intToFloat(f32, image.height);
+                    var ray = camera.ray(u, v);
+                    const raytrace_result = self.raytrace(ray, random);
+                    _ = @atomicRmw(usize, &self.bounce_count, .Add, raytrace_result.bounce_count, .SeqCst);
+                    net_samples = net_samples.add(raytrace_result.col);
+                }
+
+                pixel.* = TranslateRGBVecToRGBAPixelU8(
+                    net_samples.div(@intToFloat(f32, sample_count)),
+                );
+            }
+        }
+    }
+
     pub fn raytraceImage(
-        self: @This(),
+        self: *@This(),
         allocator: *Allocator,
         random: *Random,
         image_width: u32,
@@ -121,7 +161,6 @@ pub const World = struct {
         const aspect = @intToFloat(f32, image_width) / @intToFloat(f32, image_height);
         const camera = Camera.init(camera_pos, camera_targ, camera_up, vfov, aspect);
 
-        var timer = try std.time.Timer.start();
         var total_bounce_count: usize = 0;
         for (image.pixels) |pixel, i| {
             const x = i % image_width;
@@ -133,23 +172,14 @@ pub const World = struct {
                 defer sample_index += 1;
                 const u = (@intToFloat(f32, x) + random.float(f32)) / @intToFloat(f32, image_width);
                 const v = 1 - (@intToFloat(f32, y) + random.float(f32)) / @intToFloat(f32, image_height);
-
                 var ray = camera.ray(u, v);
                 const raytrace_result = self.raytrace(ray, random);
                 net_samples = net_samples.add(raytrace_result.col);
-                total_bounce_count += raytrace_result.bounce_count;
+                _ = @atomicRmw(usize, &self.bounce_count, .Add, raytrace_result.bounce_count, .SeqCst);
             }
 
             pixel = TranslateRGBVecToRGBAPixelU8(net_samples.div(@intToFloat(f32, sample_count)));
         }
-        const time_ns = timer.read();
-        std.debug.warn("{} ns, {} s,{} bounces, approx {} ns per bounce\n", .{
-            time_ns,
-            @intToFloat(f32, time_ns) / 1000000000,
-            total_bounce_count,
-            time_ns / total_bounce_count,
-        });
-
         return image;
     }
 };
