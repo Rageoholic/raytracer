@@ -109,7 +109,7 @@ pub const World = struct {
         random: *Random,
         tile: Tile,
         camera: Camera,
-        image: ImageRGBAU8,
+        image: *ImageRGBAU8,
         sample_count: usize,
     ) void {
         var y = tile.y;
@@ -131,7 +131,13 @@ pub const World = struct {
                         @intToFloat(f32, image.height);
                     var ray = camera.ray(u, v);
                     const raytrace_result = self.raytrace(ray, random);
-                    _ = @atomicRmw(usize, &self.bounce_count, .Add, raytrace_result.bounce_count, .SeqCst);
+                    _ = @atomicRmw(
+                        usize,
+                        &self.bounce_count,
+                        .Add,
+                        raytrace_result.bounce_count,
+                        .SeqCst,
+                    );
                     net_samples = net_samples.add(raytrace_result.col);
                 }
 
