@@ -109,7 +109,7 @@ pub const Triangle = struct {
     norm: rmath.Vec3F32,
     mat: usize,
 
-    pub fn init(points: [3]rmath.Vec3F32, mat: usize) anyerror!@This() {
+    pub fn initClockwise(points: [3]rmath.Vec3F32, mat: usize) @This() {
         const edge1 = points[1].sub(points[0]);
         const edge2 = points[2].sub(points[0]);
         const norm = edge1.cross(edge2).normOrZero();

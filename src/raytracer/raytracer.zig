@@ -119,7 +119,7 @@ pub const World = struct {
                 }
             }
             for (self.triangles) |tri| {
-                if(tri.hit(ray)) |tri_hit| {
+                if (tri.hit(ray)) |tri_hit| {
                     if (tri_hit.distance < distance and tri_hit.distance > 0.0001) {
                         distance = tri_hit.distance;
                         material_opt = tri.mat;
@@ -166,7 +166,6 @@ pub const World = struct {
                 return .{ .col = net_color, .bounce_count = bounce_index + 1 };
             }
         }
-        std.debug.warn("Missed sky", .{});
         return .{ .col = net_color, .bounce_count = bounce_count };
     }
 
