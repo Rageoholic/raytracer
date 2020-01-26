@@ -8,5 +8,6 @@ Simply run zig build.
 
 ## Future plans
   * Load a description of the world from a file (ugh JSON)
-  * Dielectric materials
   * Depth of field
+  * SIMD?
+  * Triangles

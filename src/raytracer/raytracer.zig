@@ -30,6 +30,39 @@ fn random_bilateral_vec(random: *Random) rmath.Vec3F32 {
     };
 }
 
+const RefractInfo = struct {
+    reflect_prob: f32,
+    refracted: rmath.Vec3F32,
+};
+
+fn refract(
+    v: rmath.Vec3F32,
+    n: rmath.Vec3F32,
+    ni_over_nt: f32,
+    cosine: f32,
+    ref_idx: f32,
+) ?RefractInfo {
+    const uv = v.normOrZero();
+    const dt = uv.dot(n);
+    const discriminant = 1 - ni_over_nt * ni_over_nt * (1 - dt * dt);
+    if (discriminant > 0) {
+        const refracted = uv.sub(
+            n.mul(dt),
+        ).mul(
+            ni_over_nt,
+        ).sub(
+            n.mul(std.math.sqrt(discriminant)),
+        );
+
+        const r0 = (1 - ref_idx) / (1 + ref_idx);
+        const r0_square = r0 * r0;
+        const ref_prob = r0_square + (1 - r0_square) * std.math.pow(f32, (1 - cosine), 5);
+        return RefractInfo{ .reflect_prob = ref_prob, .refracted = refracted };
+    } else {
+        return null;
+    }
+}
+
 pub const World = struct {
     spheres: []const Sphere,
     planes: []const Plane,
@@ -63,12 +96,12 @@ pub const World = struct {
             for (self.spheres) |sphere| {
                 const sphere_hit_opt = sphere.hit(ray);
                 if (sphere_hit_opt) |sphere_hit| {
-                    if (sphere_hit.neg < distance and sphere_hit.neg > 0.0001) {
+                    if (sphere_hit.neg < distance and sphere_hit.neg > 0.001) {
                         distance = sphere_hit.neg;
                         material_opt = sphere.mat;
                         bounce_normal = ray.getPointAtDistance(sphere_hit.neg).sub(sphere.center).normOrZero();
                     }
-                    if (sphere_hit.pos < distance and sphere_hit.pos > 0.0001) {
+                    if (sphere_hit.pos < distance and sphere_hit.pos > 0.001) {
                         distance = sphere_hit.pos;
                         material_opt = sphere.mat;
                         bounce_normal = ray.getPointAtDistance(sphere_hit.pos).sub(sphere.center).normOrZero();
@@ -77,7 +110,7 @@ pub const World = struct {
             }
             for (self.planes) |plane| {
                 if (plane.hit(ray)) |plane_hit| {
-                    if (plane_hit.distance < distance and plane_hit.distance > 0.0001) {
+                    if (plane_hit.distance < distance and plane_hit.distance > 0.001) {
                         distance = plane_hit.distance;
                         material_opt = plane.mat;
                         bounce_normal = plane.norm;
@@ -95,12 +128,35 @@ pub const World = struct {
                         const random_bounce = bounce_normal.?.add(random_bilateral_vec(random));
                         ray.dir = pure_bounce.lerp(random_bounce, metal.specular);
                     },
+                    .Dielectric => |di| {
+                        const reflect = ray.dir.reflect(bounce_normal.?);
+                        const pos_dot = !(ray.dir.dot(bounce_normal.?) > 0);
+                        const out_normal = bounce_normal.?.mul(if (pos_dot) 1 else -1);
+                        const ni_over_nt = if (pos_dot) 1 / di.ref_idx else di.ref_idx;
+                        const cosine = di.ref_idx * std.math.absFloat(ray.dir.dot(bounce_normal.?));
+                        var new_ray: rmath.Ray3F32 = undefined;
+                        new_ray.pos = ray.getPointAtDistance(distance);
+                        new_ray.dir = reflect;
+                        if (refract(
+                            ray.dir,
+                            bounce_normal.?,
+                            ni_over_nt,
+                            cosine,
+                            di.ref_idx,
+                        )) |refract_info| {
+                            if (random.float(f32) > refract_info.reflect_prob) {
+                                new_ray.dir = refract_info.refracted;
+                            }
+                        }
+                        ray = new_ray;
+                    },
                 }
             } else {
                 net_color = net_color.add(attenuation.hadamardMul(col));
                 return .{ .col = net_color, .bounce_count = bounce_index + 1 };
             }
         }
+        std.debug.warn("Missed sky", .{});
         return .{ .col = net_color, .bounce_count = bounce_count };
     }
 

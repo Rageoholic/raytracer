@@ -93,9 +93,9 @@ pub fn main() anyerror!void {
             .mat = 0,
         },
         raytracer.Sphere{
-            .center = rmath.Vec(f32, 3){ .e = [_]f32{ -1, 1, -2 } },
+            .center = rmath.Vec(f32, 3){ .e = [_]f32{ -1, 0, -1 } },
             .radius = 0.5,
-            .mat = 5,
+            .mat = 6,
         },
 
         raytracer.Sphere{
@@ -119,7 +119,7 @@ pub fn main() anyerror!void {
     const planes = [_]raytracer.Plane{
         raytracer.Plane{
             .norm = rmath.Vec(f32, 3){ .e = [_]f32{ 0, 1, 0 } },
-            .distance_from_origin = 0,
+            .distance_from_origin = -0.5,
             .mat = 1,
         },
     };
@@ -167,6 +167,11 @@ pub fn main() anyerror!void {
                 .specular = 0.7,
             },
         },
+        .{
+            .Dielectric = .{
+                .ref_idx = 1.5,
+            },
+        },
     };
 
     var world = raytracer.World{
@@ -174,8 +179,8 @@ pub fn main() anyerror!void {
         .materials = materials[0..],
         .planes = planes[0..],
     };
-    var rand = std.rand.Pcg.init(0);
-    const camera_pos = rmath.Vec3F32{ .e = [3]f32{ 3, 1, 4 } };
+    var rand = std.rand.DefaultPrng.init(0);
+    const camera_pos = rmath.Vec3F32{ .e = [3]f32{ 0, 0, 1 } };
     const camera_targ = rmath.Vec3F32{ .e = [3]f32{ 0, 0, -1 } };
     const camera_up = rmath.Vec3F32{ .e = [3]f32{ 0, 1, 0 } };
     const aspect = @intToFloat(f32, image_width) / @intToFloat(f32, image_height);
