@@ -97,6 +97,37 @@ pub const Plane = struct {
     }
 };
 
+pub const Triangle = struct {
+    points: [3]rmath.Vec3F32,
+    norm: rmath.Vec3F32,
+    mat: usize,
+
+    pub fn init(points: [3]rmath.Vec3F32, mat: usize) anyerror!@This() {
+        const edge1 = points[1].sub(points[0]);
+        const edge2 = points[2].sub(points[0]);
+        const norm = edge1.cross(edge2).normOrZero();
+        return @This(){ .points = points, .norm = norm, .mat = mat };
+    }
+
+    pub fn hit(self: @This(), ray: rmath.Ray3F32) ?PlaneHitRecord {
+        const denom = self.norm.dot(ray.dir);
+        const distance_from_origin = (self.points[0].z() + self.points[1].z() + self.points[2].z()) / 3.0;
+        const distance = (distance_from_origin - self.norm.dot(ray.pos)) / denom;
+        const edge1 = self.points[1].sub(self.points[0]);
+        const edge2 = self.points[2].sub(self.points[0]);
+        const edge3 = self.points[2].sub(self.points[1]);
+        const intersection_point = ray.getPointAtDistance(distance);
+        const check1 = edge1.cross(intersection_point.sub(self.points[0])).dot(self.norm);
+        const check2 = edge2.cross(intersection_point.sub(self.points[1])).dot(self.norm);
+        const check3 = edge3.cross(intersection_point.sub(self.points[2])).dot(self.norm);
+        if (check1 >= 0 and check2 >= 0 and check3 >= 0) {
+            return PlaneHitRecord{ .distance = distance };
+        } else {
+            return null;
+        }
+    }
+};
+
 const PlaneHitRecord = struct {
     distance: f32,
 };

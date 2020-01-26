@@ -33,6 +33,7 @@ fn random_bilateral_vec(random: *Random) rmath.Vec3F32 {
 pub const World = struct {
     spheres: []const Sphere,
     planes: []const Plane,
+    triangles: []const Triangle,
     materials: []const Material,
     bounce_count: usize = 0,
     const RaytraceResult = struct {
@@ -81,6 +82,15 @@ pub const World = struct {
                         distance = plane_hit.distance;
                         material_opt = plane.mat;
                         bounce_normal = plane.norm;
+                    }
+                }
+            }
+            for (self.triangles) |tri| {
+                if(tri.hit(ray)) |tri_hit| {
+                    if (tri_hit.distance < distance and tri_hit.distance > 0.0001) {
+                        distance = tri_hit.distance;
+                        material_opt = tri.mat;
+                        bounce_normal = tri.norm;
                     }
                 }
             }

@@ -124,6 +124,18 @@ pub fn main() anyerror!void {
         },
     };
 
+    const tripoints = [_]rmath.Vec(f32, 3){
+            rmath.Vec(f32, 3){ .e = [_]f32{ 0, 1.4, 0 } },
+            rmath.Vec(f32, 3){ .e = [_]f32{ 0, 1.6, 0 } },
+            rmath.Vec(f32, 3){ .e = [_]f32{ 0.5, 1.3, -2 } },
+        };
+
+    const tri1 = try raytracer.Triangle.init(tripoints, 5);
+
+    const triangles = [_]raytracer.Triangle{
+        tri1
+    };
+
     const materials = [_]raytracer.Material{
         .{
             .Default = .{
@@ -173,6 +185,7 @@ pub fn main() anyerror!void {
         .spheres = spheres[0..],
         .materials = materials[0..],
         .planes = planes[0..],
+        .triangles = triangles[0..],
     };
     var rand = std.rand.Pcg.init(0);
     const camera_pos = rmath.Vec3F32{ .e = [3]f32{ 3, 1, 4 } };
