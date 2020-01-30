@@ -90,30 +90,30 @@ pub fn main() anyerror!void {
         raytracer.Sphere{
             .center = rmath.Vec(f32, 3){ .e = [_]f32{ 0, 0, -1 } },
             .radius = 0.5,
-            .mat = 0,
+            .mat = 6,
         },
         raytracer.Sphere{
             .center = rmath.Vec(f32, 3){ .e = [_]f32{ -1, 0, -1 } },
             .radius = 0.5,
-            .mat = 6,
-        },
-
-        raytracer.Sphere{
-            .center = rmath.Vec(f32, 3){ .e = [_]f32{ 1, 1, -2 } },
-            .radius = 0.5,
-            .mat = 2,
-        },
-        raytracer.Sphere{
-            .center = rmath.vec3(3, 1, -2),
-            .radius = 1,
             .mat = 3,
         },
 
-        raytracer.Sphere{
-            .center = rmath.vec3(6, 2, -8),
-            .radius = 2,
-            .mat = 4,
-        },
+        // raytracer.Sphere{
+        //     .center = rmath.Vec(f32, 3){ .e = [_]f32{ 1, 1, -2 } },
+        //     .radius = 0.5,
+        //     .mat = 2,
+        // },
+        // raytracer.Sphere{
+        //     .center = rmath.vec3(3, 1, -2),
+        //     .radius = 1,
+        //     .mat = 3,
+        // },
+
+        // raytracer.Sphere{
+        //     .center = rmath.vec3(6, 2, -8),
+        //     .radius = 2,
+        //     .mat = 4,
+        // },
     };
 
     const planes = [_]raytracer.Plane{
@@ -125,14 +125,16 @@ pub fn main() anyerror!void {
     };
 
     const tripoints = [_]rmath.Vec(f32, 3){
+        rmath.Vec(f32, 3){ .e = [_]f32{ 1.5, 0, -2 } },
+        rmath.Vec(f32, 3){ .e = [_]f32{ 1.5, 1.5, -2 } },
         rmath.Vec(f32, 3){ .e = [_]f32{ 0.5, 0, -2 } },
-        rmath.Vec(f32, 3){ .e = [_]f32{ 0.5, 1.5, -2 } },
-        rmath.Vec(f32, 3){ .e = [_]f32{ -0.5, 0, -2 } },
     };
 
-    const tri1 = raytracer.Triangle.initClockwise(tripoints, 5);
+    const tri1 = raytracer.Triangle.initClockwise(tripoints, 2);
 
-    const triangles = [_]raytracer.Triangle{tri1};
+    const triangles = [_]raytracer.Triangle{
+        //        tri1,
+    };
 
     const materials = [_]raytracer.Material{
         .{
