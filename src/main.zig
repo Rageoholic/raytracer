@@ -125,15 +125,15 @@ pub fn main() anyerror!void {
     };
 
     const tripoints = [_]rmath.Vec(f32, 3){
-        rmath.Vec(f32, 3){ .e = [_]f32{ 1.5, 0, -2 } },
-        rmath.Vec(f32, 3){ .e = [_]f32{ 1.5, 1.5, -2 } },
-        rmath.Vec(f32, 3){ .e = [_]f32{ 0.5, 0, -2 } },
+        rmath.Vec(f32, 3){ .e = [_]f32{ 1, 0.5, -2 } },
+        rmath.Vec(f32, 3){ .e = [_]f32{ 1, 1, -2 } },
+        rmath.Vec(f32, 3){ .e = [_]f32{ 0.5, 0.5, -2 } },
     };
 
     const tri1 = raytracer.Triangle.initClockwise(tripoints, 2);
 
     const triangles = [_]raytracer.Triangle{
-        //        tri1,
+                tri1,
     };
 
     const materials = [_]raytracer.Material{

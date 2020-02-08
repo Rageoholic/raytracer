@@ -123,15 +123,23 @@ pub const Triangle = struct {
         const edge1 = self.points[1].sub(self.points[0]);
         const edge2 = self.points[2].sub(self.points[0]);
         const edge3 = self.points[2].sub(self.points[1]);
-        const intersection_point = ray.getPointAtDistance(distance);
-        const check1 = edge1.cross(intersection_point.sub(self.points[0])).dot(self.norm);
-        const check2 = edge2.cross(intersection_point.sub(self.points[1])).dot(self.norm);
-        const check3 = edge3.cross(intersection_point.sub(self.points[2])).dot(self.norm);
-        if (check1 >= 0 and check2 >= 0 and check3 >= 0) {
-            return PlaneHitRecord{ .distance = distance };
-        } else {
-            return null;
-        }
+
+        const pvec = ray.dir.cross(edge2);
+        const determinant = edge1.dot(pvec);
+
+        if(determinant < 0.001 and determinant > -0.001) return null;
+
+        const invdet = 1 / determinant;
+        const tvec = ray.pos.sub(self.points[0]);
+        const u = tvec.dot(pvec) * invdet;
+        if(u < 0 or u > 1) return null;
+
+        const qvec = tvec.cross(edge1);
+        const v = ray.dir.dot(qvec) * invdet;
+        if(v < 0 or (u + v) > 1) return null;
+
+        const t = edge1.dot(qvec) * invdet;
+        return PlaneHitRecord{ .distance = distance };
     }
 };
 
