@@ -6,7 +6,8 @@ const std = @import("std");
 const builtin = @import("builtin");
 const windows = @import("windows.zig");
 
-// TODO: tests check that all instances have necessary traits
+// TODO: Just reevaluate this whole structure. This feels wrong. There
+// should be an OS API and an independent API
 pub const EasyFBInstance = if (builtin.os == .windows)
     windows.EasyFBInstanceWindows
 else
