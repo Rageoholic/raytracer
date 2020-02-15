@@ -35,6 +35,12 @@ const RefractInfo = struct {
     refracted: rmath.Vec3F32,
 };
 
+fn schlick(cos: f32, ref_idx: f32) f32 {
+    const r0 = (1 - ref_idx) / (1 + ref_idx);
+    const r0_sq = r0 * r0;
+    return r0_sq + (1 - r0_sq) * std.math.pow(f32, 1 - cos, 5);
+}
+
 fn refract(
     v: rmath.Vec3F32,
     n: rmath.Vec3F32,
@@ -106,7 +112,7 @@ pub const World = struct {
 
             for (self.planes) |plane| {
                 if (plane.hit(ray)) |plane_hit| {
-                    if (plane_hit.distance < distance and plane_hit.distance > 0.001) {
+                    if (plane_hit.distance < distance and plane_hit.distance > 0.0001) {
                         distance = plane_hit.distance;
                         material_opt = plane.mat;
                         bounce_normal = plane.norm;
@@ -126,38 +132,48 @@ pub const World = struct {
 
             if (material_opt) |material_index| {
                 const mat = self.materials[material_index];
+                const new_pos = ray.getPointAtDistance(distance);
+                var new_dir: rmath.Vec3F32 = undefined;
+
                 switch (mat) {
                     .Default => |metal| {
                         net_color = net_color.add(attenuation.hadamardMul(metal.emit));
                         attenuation = attenuation.hadamardMul(metal.ref);
-                        ray.pos = ray.getPointAtDistance(distance);
-                        const pure_bounce = ray.dir.reflect(bounce_normal.?).normOrZero();
+                        const pure_bounce = ray.dir.reflect(bounce_normal.?);
                         const random_bounce = bounce_normal.?.add(random_bilateral_vec(random));
-                        ray.dir = pure_bounce.lerp(random_bounce, metal.specular);
+                        new_dir = pure_bounce.lerp(random_bounce, metal.specular);
                     },
                     .Dielectric => |di| {
                         const reflected = ray.dir.reflect(bounce_normal.?);
                         var out_normal: rmath.Vec3F32 = undefined;
                         var ni_over_nt: f32 = undefined;
+                        var cos: f32 = undefined;
+
                         if (ray.dir.dot(bounce_normal.?) > 0) {
                             out_normal = bounce_normal.?.mul(-1);
                             ni_over_nt = di.ref_idx;
+                            cos = di.ref_idx * ray.dir.dot(bounce_normal.?);
                         } else {
                             out_normal = bounce_normal.?;
                             ni_over_nt = 1 / di.ref_idx;
+                            cos = -ray.dir.dot(bounce_normal.?);
                         }
                         if (refract(
                             ray.dir,
                             out_normal,
                             ni_over_nt,
                         )) |refracted| {
-                            ray.dir = refracted.normOrZero();
+                            if (random.float(f32) > schlick(cos, di.ref_idx)) {
+                                new_dir = refracted.normOrZero();
+                            } else {
+                                new_dir = reflected.normOrZero();
+                            }
                         } else {
-                            ray.dir = reflected.normOrZero();
+                            new_dir = reflected.normOrZero();
                         }
-                        ray.pos = ray.getPointAtDistance(distance);
                     },
                 }
+                ray = .{ .dir = new_dir, .pos = new_pos };
             } else {
                 net_color = net_color.add(attenuation.hadamardMul(col));
                 return .{ .col = net_color, .bounce_count = bounce_index + 1 };

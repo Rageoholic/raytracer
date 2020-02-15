@@ -90,7 +90,7 @@ pub fn main() anyerror!void {
         raytracer.Sphere{
             .center = rmath.Vec(f32, 3){ .e = [_]f32{ 0, 0, -1 } },
             .radius = 0.5,
-            .mat = 6,
+            .mat = 7,
         },
         raytracer.Sphere{
             .center = rmath.Vec(f32, 3){ .e = [_]f32{ -1, 0, -1 } },
@@ -133,7 +133,7 @@ pub fn main() anyerror!void {
     const tri1 = raytracer.Triangle.initClockwise(tripoints, 2);
 
     const triangles = [_]raytracer.Triangle{
-                tri1,
+        tri1,
     };
 
     const materials = [_]raytracer.Material{
@@ -180,6 +180,13 @@ pub fn main() anyerror!void {
             },
         },
         .{
+            .Default = .{
+                .ref = rmath.Vec3F32{ .e = [_]f32{ 1, 1, 1 } },
+                .emit = rmath.Vec3F32{ .e = [_]f32{ 0, 0, 0 } },
+                .specular = 1,
+            },
+        },
+        .{
             .Dielectric = .{
                 .ref_idx = 1.5,
             },
@@ -193,7 +200,7 @@ pub fn main() anyerror!void {
         .triangles = triangles[0..],
     };
     var rand = std.rand.DefaultPrng.init(0);
-    const camera_pos = rmath.Vec3F32{ .e = [3]f32{ 0, 0, 1 } };
+    const camera_pos = rmath.Vec3F32{ .e = [3]f32{ -1, 0, 1 } };
     const camera_targ = rmath.Vec3F32{ .e = [3]f32{ 0, 0, -1 } };
     const camera_up = rmath.Vec3F32{ .e = [3]f32{ 0, 1, 0 } };
     const aspect = @intToFloat(f32, image_width) / @intToFloat(f32, image_height);
