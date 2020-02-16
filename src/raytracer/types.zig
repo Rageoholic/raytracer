@@ -35,17 +35,25 @@ pub const ImageRGBAU8 = struct {
         self.allocator.free(self.pixels);
     }
 
-    pub fn divideIntoTiles(self: *@This(), allocator: *Allocator, n: usize) ![]Tile {
-        const tiles = try allocator.alloc(Tile, n);
-        const tile_height = (self.height + n - 1) / n; // Prefer higher values
-        const tile_width = self.width;
-        for (tiles) |tile, i| {
-            tile = .{
-                .x = 0,
-                .y = tile_height * i,
-                .width = tile_width,
-                .height = std.math.min(tile_height, self.height - tile_height * i),
-            };
+    pub fn divideIntoTiles(self: *@This(), allocator: *Allocator, num_threads: usize) ![]Tile {
+        // TODO: based on world make it so most *work* is divided
+        const tile_height = 100;
+        const tile_count_height = (self.height + tile_height - 1) / tile_height;
+        const tile_width = tile_height;
+        const tile_count_width = (self.width + tile_width - 1) / tile_width;
+        const tiles = try allocator.alloc(Tile, tile_count_height * tile_count_width);
+        var i: usize = 0;
+        while (i < tile_count_height) : (i += 1) {
+            var j: usize = 0;
+            while (j < tile_count_width) : (j += 1) {
+                const tile = &tiles[i * tile_count_width + j];
+                tile.* = .{
+                    .x = tile_width * j,
+                    .y = tile_height * i,
+                    .width = std.math.min(tile_width, self.width - tile_width * j),
+                    .height = std.math.min(tile_height, self.height - tile_height * i),
+                };
+            }
         }
         return tiles;
     }
@@ -127,16 +135,16 @@ pub const Triangle = struct {
         const pvec = ray.dir.cross(edge2);
         const determinant = edge1.dot(pvec);
 
-        if(determinant < 0.001 and determinant > -0.001) return null;
+        if (determinant < 0.001 and determinant > -0.001) return null;
 
         const invdet = 1 / determinant;
         const tvec = ray.pos.sub(self.points[0]);
         const u = tvec.dot(pvec) * invdet;
-        if(u < 0 or u > 1) return null;
+        if (u < 0 or u > 1) return null;
 
         const qvec = tvec.cross(edge1);
         const v = ray.dir.dot(qvec) * invdet;
-        if(v < 0 or (u + v) > 1) return null;
+        if (v < 0 or (u + v) > 1) return null;
 
         const t = edge1.dot(qvec) * invdet;
         return PlaneHitRecord{ .distance = distance };
