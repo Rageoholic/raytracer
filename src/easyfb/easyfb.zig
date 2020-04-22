@@ -8,7 +8,7 @@ const windows = @import("windows.zig");
 
 // TODO: Just reevaluate this whole structure. This feels wrong. There
 // should be an OS API and an independent API
-pub const EasyFBInstance = if (builtin.os == .windows)
+pub const EasyFBInstance = if (builtin.os.tag == .windows)
     windows.EasyFBInstanceWindows
 else
     @compileError("Implement easyFB for platform");

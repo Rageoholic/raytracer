@@ -10,18 +10,9 @@ const parent = @import("../easyfb.zig");
 
 const UINT_PTR = usize; // TODO: Do this correctly?
 const LONG_PTR = isize; // TODO: Do this correctly?
-const LRESULT = LONG_PTR;
 const ATOM = WORD;
 
-const HWND = HANDLE;
-const WPARAM = UINT_PTR;
-const LPARAM = LONG_PTR;
 const WNDPROC = ?fn (HWND, UINT, WPARAM, LPARAM) callconv(.Stdcall) LRESULT;
-const HICON = HANDLE;
-const HCURSOR = HICON;
-const HBRUSH = HANDLE;
-const HMENU = HANDLE;
-const HDC = HANDLE;
 
 const WS_MINIMIZEBOX = 0x00020000;
 const WS_SYSMENU = 0x00080000;
@@ -255,18 +246,18 @@ pub const EasyFBInstanceWindows = struct {
             @ptrCast(HINSTANCE, kernel32.GetModuleHandleW(null)),
             &createinfo,
         );
-        if (win == null) {
+        if (win) |window| {
+            var msg: MSG = undefined;
+            var quit_message_recieved = true;
+            while (@atomicLoad(u32, &window_open, .SeqCst) != 0 and 0 != GetMessageW(&msg, win.?, 0, 0)) {
+                _ = TranslateMessage(&msg);
+                _ = DispatchMessageA(&msg);
+            }
+            if (quit_message_recieved) {
+                _ = DestroyWindow(win.?);
+            }
+        } else {
             return error.WindowCreationFailure;
-        }
-
-        var msg: MSG = undefined;
-        var quit_message_recieved = true;
-        while (@atomicLoad(u32, &window_open, .SeqCst) != 0 and 0 != GetMessageW(&msg, win, 0, 0)) {
-            _ = TranslateMessage(&msg);
-            _ = DispatchMessageA(&msg);
-        }
-        if (quit_message_recieved) {
-            _ = DestroyWindow(win);
         }
     }
 
@@ -282,7 +273,7 @@ extern "gdi32" fn StretchDIBits(hdc: HDC, xDest: c_int, yDest: c_int, DestWidth:
 
 extern "user32" fn GetClientRect(hWnd: HWND, lpRect: *RECT) callconv(.Stdcall) BOOL;
 fn windowProc(win: HWND, msg: UINT, w_param: WPARAM, l_param: LPARAM) callconv(.Stdcall) LRESULT {
-    var ret: LRESULT = 0;
+    var ret: LRESULT = null;
     switch (msg) {
         WM_DESTROY => blk: {
             const window_open_ptr = @intToPtr(*u32, @bitCast(usize, GetWindowLongPtrW(win, 1 * @sizeOf(LONG_PTR))));
@@ -321,7 +312,7 @@ fn windowProc(win: HWND, msg: UINT, w_param: WPARAM, l_param: LPARAM) callconv(.
             if (b == 0) {
                 std.debug.warn("Couldn't get client rect", .{});
             }
-            const createstruct = @intToPtr(*CREATESTRUCTW, @bitCast(usize, l_param));
+            const createstruct = @intToPtr(*CREATESTRUCTW, @ptrToInt(l_param));
             const createinfo = @ptrCast(
                 *CreateInfoStruct,
                 @alignCast(8, createstruct.lpCreateParams),

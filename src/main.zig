@@ -222,8 +222,8 @@ pub fn main() anyerror!void {
     var work_queue = WorkQueue(raytracer.Tile).init(tiles);
 
     const thread_contexts = try primary_allocator.allocator.alloc(ThreadContext, cpu_count);
-    for (thread_contexts) |thread_context, i| {
-        thread_context = .{
+    for (thread_contexts) |*thread_context, i| {
+        thread_context.* = .{
             .world = &world,
             .random = &rand.random,
             .work_queue = &work_queue,
@@ -253,7 +253,7 @@ pub fn main() anyerror!void {
     });
 
     try easyfb_instance.renderRGBAImageSync(
-        @sliceToBytes(image.pixels),
+        std.mem.sliceAsBytes(image.pixels),
         image.width,
         image.height,
         "simple raytracer",
